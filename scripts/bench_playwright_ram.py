@@ -119,7 +119,7 @@ async def run(args):
                 context = await playwright.chromium.launch_persistent_context(
                     profile, headless=not args.headed, service_workers="block",
                     args=["--disable-background-networking","--disable-sync","--no-first-run"],
-                    viewport={"width":1100,"height":700})
+                    viewport={"width":1100,"height":700},\n                    **({"executable_path":args.chromium_exe} if args.chromium_exe else {}))
                 try:
                     for page in list(context.pages):
                         await page.close()
@@ -205,7 +205,7 @@ async def run(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seconds",type=int,default=120)
-    parser.add_argument("--headed",action="store_true",help="Abrir janela visível no desktop real")
+    parser.add_argument("--headed",action="store_true",help="Abrir janela visível no desktop real")\n    parser.add_argument("--chromium-exe",help="Caminho do Chromium do sistema para diagnóstico alternativo")
     parser.add_argument("--url",help="URL pública de teste a carregar na primeira aba após teste da fixture")
     parser.add_argument("--out",default="artifacts/week1/browser_ram.jsonl")
     args=parser.parse_args()
