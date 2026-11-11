@@ -2,33 +2,36 @@
 
 Assistente pessoal nativo para Ubuntu GNOME/Wayland. **Em construção.**
 
-O repositório é novo; o código antigo permanece como referência. A arquitetura foi aprovada com quatro emendas oficiais e **a homologação real ainda não foi executada**.
+O repositório começa com o Plano Diretor aprovado e um diagnóstico reproduzível de pré-homologação. O Core, a máquina de estados e os adaptadores de SO ainda **não foram implementados**. Por exigência do projeto, essas partes dependem de implementação e depuração humanas.
 
-## Plano Diretor aprovado (revisão 1.1)
+## Documentos
 
-O Adam será um agente pessoal com voz, execução verificável, estado operacional e automação híbrida. Ordem preferencial das ferramentas: **API/CLI → CDP/WebDriver → AT-SPI/D-Bus/portais → visão sob demanda**.
+- [Plano Diretor (rev. 1.1)](docs/PLANO_DIRETOR.md) — quatro emendas, arquitetura, seis semanas e critérios.
+- [Matriz de Aceite](docs/ACEITE_ALPHA.md) — M1 a M4, todos ainda pendentes.
 
-### Emendas obrigatórias
+## Diagnóstico (não é protótipo funcional)
 
-1. **RAM 8 GB:** orçamento de memória com limites e redução de carga sob pressão; TTS somente em nuvem (ElevenLabs ou similar) e navegador automatizado com bloqueio condicional de mídia, limpeza de abas e limites de consumo.
-2. **Autoria humana:** Core, máquina de estados e integrações Wayland/AT-SPI implementados e depurados por engenheiros humanos. IA poderá auxiliar em testes, documentação e integrações de alto nível.
-3. **Memória operacional:** nasce na Fase 1, com estados, checkpoints, última ação, erros e idempotência; memória semântica fica para Fase 9.
-4. **Prazo:** seis semanas somente para o Alpha 0.1 (11/11 a 23/12/2026). Beta e V1.0 não têm cronograma aprovado.
+Em Python 3.10+:
 
-### Metas obrigatórias do Alpha
+    python3 scripts/preflight.py --json
+    python3 -m unittest discover -s tests -v
 
-- **M1:** TTFA inferior a 1,5 s desde soltar Push-to-Talk até a primeira ação real em comandos locais determinísticos; incluir STT, roteamento e execução, registrando p50/p95/máximo e falhas.
-- **M2:** controle efetivo do desktop GNOME/Wayland com autorização e validação em Firefox e VS Code.
-- **M3:** máquina de estados com confirmação de resultado, cancelamento, timeout, idempotência e sem loops.
-- **M4:** bloqueio de instruções externas maliciosas e exfiltração sem autorização, em testes adversariais.
+O script é somente leitura: não abre programas, não toca mouse/teclado, não envia dados à internet e não imprime chaves. Executar no **Ubuntu GNOME/Wayland do usuário** para registrar informações de hardware/sessão.
 
-SLM local para roteamento, regras para caminho determinístico, Dual-LLM com fronteiras de confiança e políticas independentes do modelo. **É proibido anunciar simulações como homologação.**
+## Requisitos congelados
 
-## Estado
+- RAM de 8 GB: orçamento, contenção de abas, TTS exclusivamente na nuvem.
+- Roteamento local por regras e SLM quantizado, com Dual-LLM e políticas contra exfiltração.
+- Preferência: API/CLI → CDP/WebDriver → AT-SPI/D-Bus/portais → visão.
+- Memória operacional junto ao Core na Fase 1.
+- Autoria humana do Core, máquina de estados e integrações Wayland/AT-SPI.
+- TTFA de comando determinístico < 1,5 s desde soltar PTT até primeira ação real.
+- Seis semanas apenas para Alpha 0.1; Beta/v1.0 sem cronograma.
 
-- ✅ Aprovação e planejamento de arquitetura.
-- ⏳ Código de núcleo de SO a ser escrito e validado por humanos.
-- ⏳ Voice/PTT/SLM/Playwright/AT-SPI/visão a implementar.
-- ⏳ Homologação oficial em Ubuntu GNOME/Wayland de 8 GB não realizada.
+## Situação
 
-Consulte o documento `docs/PLANO_DIRETOR.md` para o plano completo quando publicado.
+✅ Documento e matriz criados. Diagnóstico e testes de preflight disponíveis.  
+⏳ Core, voz, SLM, navegador, controle Wayland e segurança operacional por implementar.  
+⏳ Homologação oficial em máquina GNOME/Wayland não realizada.
+
+**Não confundir testes do preflight com as quatro metas de aceite do produto.**
