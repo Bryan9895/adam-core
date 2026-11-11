@@ -1,0 +1,35 @@
+name: Adam preflight and documentation checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Test diagnostic
+        run: python3 -m unittest discover -s tests -v
+      - name: Export environment evidence (not alpha homologation)
+        run: python3 scripts/preflight.py --json > preflight-ci.json
+      - name: Assert preflight does not claim functional acceptance
+        run: |
+          python3 - <<'PY'
+          import json
+          with open("preflight-ci.json",encoding="utf-8") as stream:
+              x=json.load(stream)
+          assert x["alpha_homologation_complete"] is False
+          assert x["alpha_requirements_implemented"] is False
+          print("Preflight passes only; Adam Alpha is NOT validated.")
+          PY
