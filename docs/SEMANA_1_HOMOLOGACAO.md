@@ -11,14 +11,14 @@ Na máquina-alvo, com **sessão gráfica ativa do próprio usuário**:
 ```bash
 echo "SESSION=$XDG_SESSION_TYPE DESKTOP=$XDG_CURRENT_DESKTOP"
 loginctl show-session "$XDG_SESSION_ID" -p Type -p Desktop -p Name 2>/dev/null || true
-sudo apt install accerciser gdbus  # Se 'gdbus' não existir no pacote, instalar libglib2.0-bin
+sudo apt install accerciser libglib2.0-bin
 gdbus call --session --dest org.a11y.Bus --object-path /org/a11y/bus --method org.a11y.Bus.GetAddress
 gdbus introspect --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop | grep -E "RemoteDesktop|ScreenCast" || true
 firefox
 accerciser
 ```
 
-Observações: o comando `sudo apt install accerciser gdbus` acima pode não corresponder ao nome do pacote em algumas versões do Ubuntu; o pacote de `gdbus` normalmente é `libglib2.0-bin`. Prefira instalar somente `accerciser libglib2.0-bin`. A existência de uma interface RemoteDesktop ou ScreenCast na introspecção **não comprova consentimento nem controle da janela**.
+Observação: `gdbus` vem de `libglib2.0-bin` nas versões usuais do Ubuntu. A existência de uma interface RemoteDesktop ou ScreenCast na introspecção **não comprova consentimento nem controle da janela**.
 
 **Spike AT-SPI conduzido por humano:**
 1. Abra Firefox nativo, não em contêiner, numa página de teste sem dados privados.
