@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Adam ToolAction 0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "action_id",
+    "tool",
+    "args",
+    "idempotency_key",
+    "required_capability",
+    "timeout_ms",
+    "max_retries",
+    "preconditions",
+    "postcondition"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "action_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tool": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.]*$"
+    },
+    "args": {
+      "type": "object"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 12
+    },
+    "required_capability": {
+      "type": "string",
+      "minLength": 3
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "minimum": 50,
+      "maximum": 60000
+    },
+    "max_retries": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "preconditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "check"
+        ],
+        "properties": {
+          "check": {
+            "type": "string"
+          },
+          "args": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "postcondition": {
+      "type": "object",
+      "required": [
+        "check"
+      ],
+      "properties": {
+        "check": {
+          "type": "string"
+        },
+        "args": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

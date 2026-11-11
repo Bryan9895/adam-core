@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Adam TaskRequest 0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "trace_id",
+    "source",
+    "intent",
+    "params",
+    "auth_context_ref",
+    "idempotency_key",
+    "deadline_ms"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "trace_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source": {
+      "enum": [
+        "ptt",
+        "text",
+        "api_local"
+      ]
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "params": {
+      "type": "object"
+    },
+    "auth_context_ref": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 256
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 12,
+      "maxLength": 256
+    },
+    "deadline_ms": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 120000
+    }
+  },
+  "additionalProperties": false
+}
