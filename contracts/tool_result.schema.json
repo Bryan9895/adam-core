@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Adam ToolResult 0.1",
+  "title": "Adam ToolResult 0.2",
+  "description": "Estado observado independente do retorno de chamada ao driver. Declara sucesso apenas com pos-condicao verificada.",
   "type": "object",
   "required": [
     "schema_version",
@@ -10,11 +11,13 @@
     "verified",
     "elapsed_ms",
     "evidence",
-    "error_code"
+    "error_code",
+    "observed_state",
+    "postcondition_check"
   ],
   "properties": {
     "schema_version": {
-      "const": "0.1"
+      "const": "0.2"
     },
     "task_id": {
       "type": "string",
@@ -72,7 +75,133 @@
         "string",
         "null"
       ]
+    },
+    "observed_state": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "observed_at",
+            "source",
+            "target_ref",
+            "attributes"
+          ],
+          "properties": {
+            "observed_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "source": {
+              "enum": [
+                "at_spi",
+                "dbus",
+                "cdp",
+                "webdriver",
+                "portal",
+                "vision",
+                "system"
+              ]
+            },
+            "target_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "attributes": {
+              "type": "object",
+              "maxProperties": 32,
+              "description": "Estado observavel minimizado; nao registrar texto privado ou segredos."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "postcondition_check": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "check",
+            "matched",
+            "observation_fresh_ms"
+          ],
+          "properties": {
+            "check": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "matched": {
+              "type": "boolean"
+            },
+            "observation_fresh_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 120000
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "verified": {
+            "const": true
+          },
+          "observed_state": {
+            "type": "object"
+          },
+          "postcondition_check": {
+            "type": "object",
+            "properties": {
+              "matched": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verified": {
+            "const": true
+          }
+        },
+        "required": [
+          "verified"
+        ]
+      },
+      "then": {
+        "properties": {
+          "postcondition_check": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }
