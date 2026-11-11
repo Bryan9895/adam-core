@@ -20,45 +20,57 @@ accerciser
 
 Observação: `gdbus` vem de `libglib2.0-bin` nas versões usuais do Ubuntu. A existência de uma interface RemoteDesktop ou ScreenCast na introspecção **não comprova consentimento nem controle da janela**.
 
-**Spike AT-SPI conduzido por humano:**
-1. Abra Firefox nativo, não em contêiner, numa página de teste sem dados privados.
-2. No Accerciser, localize o processo/janela Firefox; registre nome, role, children e ações expostas.
-3. Selecione um elemento de ação (por exemplo, botão de uma página de teste).
-4. Acione a função disponível pelo **próprio Accerciser** e documente o estado antes/depois; não use cliques por coordenada para alegar êxito AT-SPI.
-5. Repita depois de reiniciar o Firefox, verificando se o identificador estável é role/nome/caminho semântico, não um índice de árvore fixo.
-6. Um engenheiro humano documentará o próximo spike de controle por portal Wayland com autorização explícita (fluxo do RemoteDesktop/libei, dependendo do sistema); registrar recusa de permissão e comportamento seguro.
-7. D-Bus: registrar disponibilidade de `org.a11y.Bus` e `org.freedesktop.portal.Desktop`; isso comprova apenas os serviços, não que um adaptador de controle foi validado.
+**Spike AT-SPI dinâmico, executado por engenheiro humano:**
 
-**Evidências obrigatórias:** `preflight.json`, versão Ubuntu/Firefox, captura do Accerciser mostrando alvo e ações, captura antes/depois da ação real, resultado do consentimento do portal, notas de falha e autoria/revisão humana dos testes de baixo nível.
+1. Com Firefox **nativo** aberto, iniciar a fixture local sem contas privadas:
+   \`\`\`bash
+   cd ~/adam-core/tests/fixtures
+   python3 -m http.server 8765 --bind 127.0.0.1
+   \`\`\`
+   Em outra janela abrir \`http://127.0.0.1:8765/atspi_dynamic.html\` no Firefox.
+2. Iniciar Accerciser, escolher o processo Firefox e localizar o documento. Observar três fases: **Carregando**, **Pronto** (botão nasce após ~1,2s) e **Processando/Concluído**.
+3. Fazer amostragens AT-SPI separadas por **250ms**, aguardando, no máximo, **15s** até que o alvo exista com **role, nome acessível, estado e ação** esperados. Exigir **três observações consecutivas equivalentes**, abrangendo pelo menos **500ms**, antes da primeira ativação.
+4. Invocar a ação disponível **via AT-SPI/Accerciser**, nunca por coordenadas. Anotar instante e evidência da chamada. Após a chamada, a página remove o botão por ~700ms, atualiza \`role=status\` e cria **novo nó** com o mesmo nome acessível.
+5. Invalidar imediatamente a referência antiga quando o nó desaparecer; redescobrir o alvo por características semânticas. Novamente exigir três observações estáveis. Comparar o **estado observado** com a pós-condição, não com o retorno do método \`doAction\`.
+6. Repetir dez ativações em horários variados; incluir uma amostragem imediatamente após a navegação e outra na substituição do botão. Registrar falso negativo, referência stale, timeout e atraso até estabilidade; **nenhum retry de ativação** antes de reconciliar o estado.
+7. Fazer teste negativo: página carregada sem target no intervalo -> **timeout explícito**, sem clique alternativo silencioso. Reiniciar Firefox e repetir o procedimento. Alterações de Firefox/AT-SPI que impeçam acesso devem constar como **bloqueio**, não como resultado aprovado.
+8. Inspecionar D-Bus de acessibilidade e disponibilidade de portal. O engenheiro humano deverá realizar separadamente uma interação de entrada pelo **RemoteDesktop/libei autorizado**; recusa de permissão deve produzir erro seguro.
+9. Registrar \`XDG_SESSION_TYPE\`, GNOME, Firefox, Accerciser, capturas da árvore e da fase inicial/intermediária/final, carimbo de tempo de cada observação, eventos e identificação do responsável humano.
 
-**Gate W1 aprovado somente quando:** um humano conseguir identificar e efetivamente ativar um elemento do Firefox via AT-SPI, e demonstrar sob autorização uma interação de entrada de desktop no Wayland. Se o Firefox não expuser o elemento, registrar bloqueio e alternativa por CDP; não substituir a evidência de AT-SPI por um resultado CDP.
+**Não presumir** que o Firefox sempre usa carregamento lazy: o teste deve provar se a árvore está pronta ou não em cada versão e, sobretudo, que o adaptador não trata nós ausentes como falha definitiva prematura.
 
-## Gate R1 — RAM + Playwright
+**Gate W1 aprovado somente quando:** há evidência de dez ciclos AT-SPI de identificação/ação/reconciliação na fixture dinâmica **e** demonstração de entrada Wayland autorizada. A inspeção estática, CDP ou uma única ação no Accerciser não substituem esse requisito.
 
-O ensaio `scripts/bench_playwright_ram.py` abre um perfil isolado do Chromium/Playwright, aplica bloqueio de imagens, mídia e fontes, desativa Service Workers, limita a duas abas por interface controlada (com fechamento defensivo de popups extras), registra memória disponível e PSS dos processos Chromium do perfil.
+**Autoria humana:** a equipe de IA não escreveu nem validou o adaptador AT-SPI. A fixture HTML e este procedimento não constituem implementação desse adaptador.
 
-```bash
+## Gate R1 — RAM + Playwright (30 minutos, obrigatório)
+
+O \`scripts/bench_playwright_ram.py\` executa **no mínimo 1800 segundos** em ciclos de criar aba, navegar por DOM sintético leve/pesado, aguardar readiness, inserir/remover nós, extrair dados, **fechar a aba**, pausar e repetir. Uma rotina paralela amostra processos Chromium/Playwright, PSS/RSS e \`MemAvailable\` a cada ~500ms; JSONL gravado progressivamente. Perfil isolado, no máximo duas abas, bloqueio de imagem, mídia e fonte, com Service Workers desligados. A página de teste é servida apenas em localhost, sem serviços externos.
+
+\`\`\`bash
 cd ~/adam-core
+git pull --ff-only
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install playwright
 python -m playwright install chromium
+sudo apt install htop
 mkdir -p artifacts/week1
 python3 scripts/preflight.py --json > artifacts/week1/preflight.json
-python3 scripts/bench_playwright_ram.py --seconds 120 --headed --out artifacts/week1/browser_ram.jsonl
-htop
-```
+python3 scripts/bench_playwright_ram.py \
+  --seconds 1800 --headed --idle-s 1.5 \
+  --out artifacts/week1/browser_ram.jsonl
+\`\`\`
 
-Tire uma captura de tela do `htop` durante o teste, mostrando RAM e processos. Guarde a captura como `artifacts/week1/htop.png`. Os dados primários devem ser os logs JSONL, não apenas uma foto.
+Durante os 30 minutos, deixar \`htop\` aberto numa sessão gráfica visível e produzir **capturas no início, meio e fim**, com processos Chromium e RAM. Os JSONL são a fonte primária. A saída \`browser_ram.summary.json\` contém status e limites.
 
-**Teste mais realista:** repetir com duas páginas públicas e consentidas usando `--url https://example.com` (ou outra URL de teste aprovada). Não usar páginas pessoais, privadas ou logadas. Interceptar mídia pode quebrar sites que dependem de imagens ou vídeos; em produção a política será adaptada por tarefa.
+**Pré-ensaio:** \`--seconds 60\` apenas para testar instrumentação; sai como \`inconclusive\` mesmo que nenhum limite seja ultrapassado. Este modo não aprova o gate.
 
-**Limites iniciais (hipóteses):** máximo de 2 abas, PSS do Chromium até 1.280 MiB e `MemAvailable` mínimo de 1.536 MiB. O teste não reserva memória para SLM e STT ainda não implementados; logo não pode provar o orçamento final de 6,95 GiB. Para o benchmark, falha é `fail`, falta de medição confiável é `inconclusive` e as duas impedem aprovação.
+**Teto inicial:** PSS Chromium <= 1280 MiB, \`MemAvailable\` >= 1536 MiB, <= 2 abas; crescimento residual do PSS pós-fechamento <= 128 MiB (mediana das primeiras cinco contra últimas cinco observações pós-fechamento). Falta de amostras ou de ciclos suficientes gera \`inconclusive\`. Erros de navegação, aumento além dos tetos e criação de abas inesperadas geram \`fail\`. **Reinício/OOM deve ser documentado como falha; não aceitar JSONL interrompido como passe.**
 
-**Importante:** um handler de evento que fecha popups extras não é garantia de limite atômico contra aplicativos maliciosos. O ensaio comprova a política do nosso controlador, não segurança adversarial nem uso permanente máximo de RAM.
+**Limitação importante:** 30 minutos e um DOM sintético não comprovam a ausência de vazamentos na 15ª tarefa real, nem o orçamento global de 6,95 GiB, pois STT/SLM ainda não estão presentes. Na fase de integração, repetir com cargas concorrentes e páginas representativas. \`htop\` costuma exibir RSS dos processos, que **não deve ser somado diretamente** como estimativa de memória única (páginas compartilhadas); utilizar PSS para teto do navegador.
 
-**Gate R1 aprovado somente quando:** teste repetível na máquina-alvo, duas abas estáveis, bloqueio de imagens demonstrado, PSS e MemAvailable registrados durante toda a janela do teste, sem OOM e dentro dos tetos; anexar screenshot htop e logs. Repetir em sessão normal com carga real para validar os limites.
-
+**Gate R1 aprovado somente quando:** teste completo realizado no notebook de 8 GB com JSONL íntegro, resumo \`pass\`, capturas htop, verificação de processos que permaneceram após o encerramento e anotação de eventuais intervenções.
 ## Gate C1 — Contratos
 
 Ver `docs/CONTRATOS_EXECUCAO.md` e `contracts/*.schema.json`. O planejamento do executor está definido, mas sua implementação e validação de políticas dependerão da equipe humana da Semana 2.
