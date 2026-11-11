@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Adam AT-SPI Dynamic Fixture</title></head>
+<body>
+  <h1>Teste dinâmico de acessibilidade do Adam</h1>
+  <p id="phase" role="status" aria-live="polite">Carregando interface...</p>
+  <div id="actions"></div>
+  <script>
+  // O botão só surge depois de 1200 ms. Um teste estático precoce deve falhar.
+  let generation = 0;
+  function makeButton() {
+    generation += 1;
+    const node = document.createElement("button");
+    node.id = "adam-action";
+    node.textContent = "Executar ação " + generation;
+    node.setAttribute("aria-label", "Executar ação de teste Adam");
+    node.addEventListener("click", () => {
+      document.querySelector("#phase").textContent = "Processando " + generation;
+      node.remove(); // invalida qualquer referência anterior à árvore
+      setTimeout(() => {
+        document.querySelector("#phase").textContent = "Concluído";
+        makeButton(); // novo nó com mesma identificação semântica
+      }, 700);
+    });
+    document.querySelector("#actions").replaceChildren(node);
+    document.querySelector("#phase").textContent = "Pronto";
+  }
+  setTimeout(makeButton, 1200);
+  </script>
+</body>
+</html>
